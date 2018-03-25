@@ -1,5 +1,14 @@
-const debug = require("debug")("main:env");
-const ENV_VARS = ["REPO_PATH", "BRANCH", "GIT_SECRET", "PORT", "IP"];
+const debug = require("debug")("env");
+const ENV_VARS = [
+  "REPO_PATH",
+  "BRANCH",
+  "GIT_SECRET",
+  "PORT",
+  "IP",
+  "IMAGE_NAME",
+  "CONTAINER_NAME",
+  "DOCKER_FLAGS"
+];
 
 if (!process.env.DEBUG) {
   console.warn(

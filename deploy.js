@@ -1,24 +1,58 @@
 const debug = require("debug")("deploy");
-const exec = require("child_process").exec;
-// const util = require("util");
-// const exec = util.promisify(require("child_process").exec);
+const { spawn } = require("child_process");
+const util = require("util");
+const exec = util.promisify(require("child_process").exec);
+const { getImageId } = require("./utils");
+const { env } = require("./env");
 
-function updateModules(path) {
-  debug("Updating node_modules");
-  console.log(path);
-  debug("Modules updated");
+// TODO clear old images?
+function buildImage(path, name) {
+  return new Promise((res, rej) => {
+    const dockerP = spawn("docker", ["build", "-t", name, "."], { cwd: path });
+    let log = "";
+    let message = "";
+    dockerP.stdout.on("data", e => {
+      log += e.toString();
+      message += e.toString();
+      if (message.includes("\n")) {
+        const [m, rest] = message.split("\n");
+        message = rest;
+        debug("docker: ", m);
+      }
+    });
+    dockerP.stderr.on("data", e => {
+      debug("warning docker: %s", e.toString());
+    });
+    dockerP.on("close", e => {
+      res(getImageId(log));
+    });
+  });
+}
+
+async function startContainer(name, imageId, flags) {
+  const command = `docker run --name ${name} ${flags}  ${imageId}`;
+  const { stdout, stderr } = await exec(command);
+  return stdout;
+}
+
+async function killOldContainer(imageName) {
+  const { stdout } = await exec("docker ps -a");
+  const containerId = stdout.split("\n").reduce((id, row) => {
+    if (row.includes(imageName)) {
+      return row.split(/\s/)[0];
+    }
+    return id;
+  }, undefined);
+  if (containerId !== undefined) {
+    return exec(`docker rm -f ${containerId}`);
+  }
 }
 
 module.exports = {
-  updateModules
+  buildImage,
+  startContainer,
+  killOldContainer
 };
-// const secret = "daddy";
-
-// function getImageId(str) {
-//   return str
-//     .match(/^(Successfully built)\s(.*)$/gm)[0]
-//     .replace("Successfully built ", "");
-// }
 
 // function getContainerId(str) {
 //   return /^([^\s]*).*group17$/gm.exec(str)[1];

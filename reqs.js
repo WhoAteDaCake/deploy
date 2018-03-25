@@ -19,6 +19,12 @@ function hasReqs(env) {
     debug("package.json not found at'%s'", repoPath);
     process.exit(1);
   }
+  // Should be handled better than just async
+  exec("command -v docker").catch(e => {
+    debug("Docker not found");
+    process.exit(1);
+  });
+
   return repoPath;
 }
 
