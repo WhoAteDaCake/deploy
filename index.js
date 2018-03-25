@@ -44,7 +44,7 @@ async function initiateDeployment() {
     debug("Failed to deploy");
     debug("%O", e);
   }
-
+  debug("Deployment complete");
   deploying = false;
 }
 
