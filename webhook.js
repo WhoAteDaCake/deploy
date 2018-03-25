@@ -1,10 +1,52 @@
 const http = require("http");
 const createHandler = require("github-webhook-handler");
+const debug = require("debug")("server");
 const { env, passOn } = require("./env");
+const { getFileHash } = require("./utils");
+const { updateModules } = require("./deploy");
 const hasReqs = require("./reqs");
 
-hasReqs(env);
+let packageJsonHash = "";
+let deploying = false;
+const repoPath = hasReqs(env);
 const handler = createHandler({ path: "/", secret: env.GIT_SECRET });
+
+async function initiateDeployment() {
+  // Easiest way to prevent deployments coliding
+  if (deploying) {
+    return;
+  }
+  deploying = true;
+  const newHash = getFileHash(repoPath, "package.json");
+  if (newHash !== packageJsonHash) {
+    packageJsonHash = newHash;
+    updateModules(repoPath);
+  }
+
+  deploying = false;
+}
+
+http
+  .createServer((req, res) => {
+    handler(req, res, err => {
+      res.statusCode = 404;
+      res.end("no such location");
+    });
+  })
+  .listen(env.PORT, env.IP, () => {
+    debug("Started listening on %s:%s", env.IP, env.PORT);
+    initiateDeployment();
+  });
+
+handler.on("error", err => {
+  debug("Error: %s", err.message);
+});
+
+handler.on("push", async event => {
+  if (event.payload.ref.includes("master") && !deploying) {
+    initiateDeployment();
+  }
+});
 // hash package json
 // git repo url
 // enable DEBUG
@@ -24,15 +66,6 @@ const handler = createHandler({ path: "/", secret: env.GIT_SECRET });
 // }
 
 // runDeployment();
-
-// http
-//   .createServer(function(req, res) {
-//     handler(req, res, function(err) {
-//       res.statusCode = 404;
-//       res.end("no such location");
-//     });
-//   })
-//   .listen(3001);
 
 // handler.on("error", function(err) {
 //   console.error("Error:", err.message);

@@ -14,6 +14,12 @@ function hasReqs(env) {
     debug("Repository path not found at '%s'", repoPath);
     process.exit(1);
   }
+  const files = fs.readdirSync(repoPath);
+  if (!files.includes("package.json")) {
+    debug("package.json not found at'%s'", repoPath);
+    process.exit(1);
+  }
+  return repoPath;
 }
 
 module.exports = hasReqs;

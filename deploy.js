@@ -1,6 +1,17 @@
+const debug = require("debug")("deploy");
+const exec = require("child_process").exec;
 // const util = require("util");
 // const exec = util.promisify(require("child_process").exec);
 
+function updateModules(path) {
+  debug("Updating node_modules");
+  console.log(path);
+  debug("Modules updated");
+}
+
+module.exports = {
+  updateModules
+};
 // const secret = "daddy";
 
 // function getImageId(str) {
