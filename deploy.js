@@ -2,31 +2,37 @@ const debug = require("debug")("deploy");
 const { spawn } = require("child_process");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
-const { getImageId } = require("./utils");
+const { getImageId, asyncSpawnSeq, asyncSpawn } = require("./utils");
 const { env } = require("./env");
+
+async function updateRepo(path, name) {
+  await asyncSpawnSeq(
+    {
+      stdout: m => debug("git: %s", m),
+      stderr: m => debug("warning git: %s", m)
+    },
+    [
+      ["git", ["reset", "--hard", "HEAD"], { cwd: path }],
+      ["git", ["pull"], { cwd: path }],
+      ["git", ["checkout", name], { cwd: path }],
+      ["git", ["pull", "origin", name], { cwd: path }]
+    ]
+  );
+}
 
 // TODO clear old images?
 function buildImage(path, name) {
-  return new Promise((res, rej) => {
-    const dockerP = spawn("docker", ["build", "-t", name, "."], { cwd: path });
-    let log = "";
-    let message = "";
-    dockerP.stdout.on("data", e => {
-      log += e.toString();
-      message += e.toString();
-      if (message.includes("\n")) {
-        const [m, rest] = message.split("\n");
-        message = rest;
+  let log = "";
+  return asyncSpawn(
+    {
+      stdout: m => {
+        log += `${m}\n`;
         debug("docker: ", m);
-      }
-    });
-    dockerP.stderr.on("data", e => {
-      debug("warning docker: %s", e.toString());
-    });
-    dockerP.on("close", e => {
-      res(getImageId(log));
-    });
-  });
+      },
+      stderr: m => debug("warning docker: %s", m)
+    },
+    ["docker", ["build", "-t", name, "."], { cwd: path }]
+  ).then(() => getImageId(log));
 }
 
 async function startContainer(name, imageId, flags) {
@@ -51,44 +57,6 @@ async function killOldContainer(imageName) {
 module.exports = {
   buildImage,
   startContainer,
-  killOldContainer
+  killOldContainer,
+  updateRepo
 };
-
-// function getContainerId(str) {
-//   return /^([^\s]*).*group17$/gm.exec(str)[1];
-// }
-
-// async function run(command) {
-//   let resp;
-//   let error;
-//   const { stdout, stderr } = await exec(command.replace("\n", ""));
-//   if (stderr) {
-//     console.error(stderr);
-//     console.log(stdout);
-//   }
-//   return stdout;
-// }
-
-// const containerName = "group17";
-
-// async function deploy() {
-//   try {
-//     const imageId = await run(`
-//     cd ./group-17 &&
-//     git pull origin master &&
-//     docker build -t group17-docker .
-//   `).then(getImageId);
-
-//     const containerId = await run("docker ps").then(getContainerId);
-//     await run(`docker stop ${containerId}`).then(() =>
-//       run(`docker rm ${containerId}`)
-//     );
-
-//     const runResp = await run(`
-//     docker run --name ${containerName} -d -p 3030:8080 -e BASE_URL='http://group17.augustinas.me' ${imageId}
-//   `);
-//   } catch (e) {
-//     console.error(e);
-//   }
-// }
-// module.exports = deploy;

@@ -2,7 +2,12 @@ const http = require("http");
 const createHandler = require("github-webhook-handler");
 const debug = require("debug")("server");
 const { env, passOn } = require("./env");
-const { buildImage, startContainer, killOldContainer } = require("./deploy");
+const {
+  buildImage,
+  startContainer,
+  killOldContainer,
+  updateRepo
+} = require("./deploy");
 const hasReqs = require("./reqs");
 
 let deploying = false;
@@ -16,6 +21,9 @@ async function initiateDeployment() {
   }
   deploying = true;
   try {
+    debug("Updating repository");
+    await updateRepo(repoPath, env.BRANCH);
+    debug("Done");
     // TODO, kill old container
     debug("Building docker image");
     const imageId = await buildImage(repoPath, env.IMAGE_NAME);
