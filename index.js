@@ -10,6 +10,8 @@ const {
 } = require("./deploy");
 const hasReqs = require("./reqs");
 
+console.log(env);
+
 let deploying = false;
 const repoPath = hasReqs(env);
 const handler = createHandler({ path: "/", secret: env.GIT_SECRET });
@@ -50,6 +52,7 @@ async function initiateDeployment() {
 
 http
   .createServer((req, res) => {
+    console.log('Request made');
     handler(req, res, err => {
       res.statusCode = 404;
       res.end("no such location");
