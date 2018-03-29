@@ -12,7 +12,6 @@ async function updateRepo(path, name) {
       stderr: m => debug("warning git: %s", m)
     },
     [
-      ["git", ["reset", "--hard", "HEAD"], { cwd: path }],
       ["git", ["pull"], { cwd: path }],
       ["git", ["checkout", name], { cwd: path }],
       ["git", ["pull", "origin", name], { cwd: path }]
@@ -36,7 +35,7 @@ function buildImage(path, name) {
 }
 
 async function startContainer(name, imageId, flags) {
-  const command = `docker run --name ${name} ${flags}  ${imageId}`;
+  const command = `docker run ${flags} --name ${name} ${imageId}`;
   const { stdout, stderr } = await exec(command);
   return stdout;
 }

@@ -37,7 +37,10 @@ function asyncSpawn(handlers, spawnArgs) {
 }
 
 function asyncSpawnSeq(handlers, spawns) {
-  return Promise.all(spawns.map(spawn => asyncSpawn(handlers, spawn)));
+  return spawns.reduce(
+    (p, spawn) => p.then(() => asyncSpawn(handlers, spawn)),
+    Promise.resolve()
+  );
 }
 
 module.exports = { getImageId, asyncSpawnSeq, asyncSpawn };

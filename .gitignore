@@ -1,3 +1,6 @@
 node_modules/
-envsource.sh
+repo/
 group-17
+
+env-source.sh
+env-docker.sh
